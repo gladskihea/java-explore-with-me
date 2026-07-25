@@ -124,7 +124,17 @@ public class EventServiceImpl implements EventService {
     public List<EventFullDto> getEventsByAdmin(List<Long> users, List<EventState> states, List<Long> categories,
                                                LocalDateTime rangeStart, LocalDateTime rangeEnd, int from, int size) {
         Pageable pageable = createPageable(from, size);
-        List<Event> events = eventRepository.findEventsByAdmin(users, states, categories, rangeStart, rangeEnd, pageable);
+
+        boolean hasUsers = users != null && !users.isEmpty();
+        List<Long> validUsers = hasUsers ? users : List.of(0L);
+
+        boolean hasStates = states != null && !states.isEmpty();
+        List<EventState> validStates = hasStates ? states : List.of(EventState.PUBLISHED);
+
+        boolean hasCategories = categories != null && !categories.isEmpty();
+        List<Long> validCategories = hasCategories ? categories : List.of(0L);
+
+        List<Event> events = eventRepository.findEventsByAdmin(hasUsers, validUsers, hasStates, validStates, hasCategories, validCategories, rangeStart, rangeEnd, pageable);
         fillData(events);
         return events.stream().map(EventMapper::toFullDto).collect(Collectors.toList());
     }
@@ -175,8 +185,11 @@ public class EventServiceImpl implements EventService {
         LocalDateTime start = (rangeStart == null) ? LocalDateTime.now() : rangeStart;
         LocalDateTime end = (rangeEnd == null) ? LocalDateTime.now().plusYears(100) : rangeEnd;
 
+        boolean hasCategories = categories != null && !categories.isEmpty();
+        List<Long> validCategories = hasCategories ? categories : List.of(0L);
+
         Pageable pageable = createPageable(from, size);
-        List<Event> events = eventRepository.findPublishedEvents(text, categories, paid, start, end, pageable);
+        List<Event> events = eventRepository.findPublishedEvents(text, hasCategories, validCategories, paid, start, end, pageable);
 
         saveEndpointHit(request);
 
@@ -214,7 +227,7 @@ public class EventServiceImpl implements EventService {
     }
 
     private Pageable createPageable(int from, int size) {
-        if (size <= 0) return PageRequest.of(0, 10); // Защита от деления на ноль
+        if (size <= 0) return PageRequest.of(0, 10);
         return PageRequest.of(from / size, size);
     }
 
