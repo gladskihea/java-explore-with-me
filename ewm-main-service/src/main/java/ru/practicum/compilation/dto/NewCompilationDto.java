@@ -15,6 +15,8 @@ import java.util.Set;
 @NoArgsConstructor
 public class NewCompilationDto {
     private Set<Long> events;
+
+    @Builder.Default
     private Boolean pinned = false;
 
     @NotBlank
