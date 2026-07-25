@@ -27,6 +27,7 @@ import ru.practicum.request.model.RequestStatus;
 import ru.practicum.request.repository.RequestRepository;
 import ru.practicum.user.model.User;
 import ru.practicum.user.repository.UserRepository;
+import ru.practicum.location.dto.LocationDto;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
