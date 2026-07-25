@@ -170,7 +170,6 @@ public class EventServiceImpl implements EventService {
         return EventMapper.toFullDto(eventRepository.save(event));
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public List<EventShortDto> getPublishedEvents(String text, List<Long> categories, Boolean paid,
