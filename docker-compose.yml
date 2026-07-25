@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
 
-  # 1. База данных для статистики
+  # 1. База данных для статистики (порт 5432)
   stats-db:
     image: postgres:16.1
     container_name: ewm-stats-db
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Сервер статистики
+  # 2. Сервер статистики (порт 9090)
   stats-server:
     build:
       context: ./ewm-stats-service/stats-server
@@ -35,9 +35,38 @@ services:
       stats-db:
         condition: service_healthy
 
-  # ewm-service:
-  #   ports:
-  #     - "8080:8080"
+  # 3. База данных основного сервиса (порт 5433)
+  ewm-db:
+    image: postgres:16.1
+    container_name: ewm-main-db
+    ports:
+      - "5433:5432" # Пробрасываем наружу порт 5433, чтобы не конфликтовать со stats-db
+    environment:
+      POSTGRES_DB: ewm_main
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d ewm_main"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  # ewm-db:
-  #   image: postgres:16.1
+  # 4. Основной сервис (порт 8080)
+  ewm-service:
+    build:
+      context: ./ewm-main-service
+    container_name: ewm-main-service
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=ewm-db
+      - DB_PORT=5432
+      - POSTGRES_DB=ewm_main
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - STATS_SERVER_URL=http://stats-server:9090
+    depends_on:
+      ewm-db:
+        condition: service_healthy
+      stats-server:
+        condition: service_started
