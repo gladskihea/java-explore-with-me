@@ -20,6 +20,7 @@ import ru.practicum.event.repository.EventRepository;
 import ru.practicum.exception.ConflictException;
 import ru.practicum.exception.NotFoundException;
 import ru.practicum.exception.ValidationException;
+import ru.practicum.location.dto.LocationDto;
 import ru.practicum.location.mapper.LocationMapper;
 import ru.practicum.location.model.Location;
 import ru.practicum.location.repository.LocationRepository;
@@ -27,7 +28,6 @@ import ru.practicum.request.model.RequestStatus;
 import ru.practicum.request.repository.RequestRepository;
 import ru.practicum.user.model.User;
 import ru.practicum.user.repository.UserRepository;
-import ru.practicum.location.dto.LocationDto;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -223,15 +223,16 @@ public class EventServiceImpl implements EventService {
     }
 
     private void setViewsAndConfirmedRequests(List<Event> events) {
-        if (events.isEmpty()) return;
+        if (events == null || events.isEmpty()) return;
 
         List<String> uris = events.stream()
                 .map(e -> "/events/" + e.getId())
                 .collect(Collectors.toList());
 
-        List<ViewStatsDto> stats = statsClient.getStats(LocalDateTime.now().minusYears(10), LocalDateTime.now().plusYears(10), uris, true);
+        List<ViewStatsDto> stats = statsClient.getStats(LocalDateTime.now().minusYears(10),
+                LocalDateTime.now().plusYears(10), uris, true);
 
-        Map<String, Long> viewsMap = stats.stream()
+        Map<String, Long> viewsMap = (stats == null || stats.isEmpty()) ? Map.of() : stats.stream()
                 .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits, (existing, replacement) -> existing));
 
         for (Event event : events) {
@@ -241,12 +242,16 @@ public class EventServiceImpl implements EventService {
     }
 
     private void saveEndpointHit(HttpServletRequest request) {
-        statsClient.saveHit(EndpointHitDto.builder()
-                .app(APP_NAME)
-                .uri(request.getRequestURI())
-                .ip(request.getRemoteAddr())
-                .timestamp(LocalDateTime.now())
-                .build());
+        try {
+            statsClient.saveHit(EndpointHitDto.builder()
+                    .app(APP_NAME)
+                    .uri(request.getRequestURI())
+                    .ip(request.getRemoteAddr())
+                    .timestamp(LocalDateTime.now())
+                    .build());
+        } catch (Exception e) {
+            log.error("Ошибка при сохранении статистики: {}", e.getMessage());
+        }
     }
 
     private User getUser(Long userId) {
