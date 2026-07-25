@@ -31,7 +31,9 @@ import ru.practicum.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -188,6 +190,11 @@ public class EventServiceImpl implements EventService {
         List<Event> events = eventRepository.findPublishedEvents(text, categories, paid, start, end, pageable);
 
         saveEndpointHit(request);
+
+        if (events.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         setViewsAndConfirmedRequests(events);
 
         List<Event> result = new ArrayList<>(events);
@@ -198,10 +205,12 @@ public class EventServiceImpl implements EventService {
                     .collect(Collectors.toList());
         }
 
-        if (sort != null && sort.equals("EVENT_DATE")) {
-            result.sort(Comparator.comparing(Event::getEventDate));
-        } else if (sort != null && sort.equals("VIEWS")) {
-            result.sort(Comparator.comparing(Event::getViews).reversed());
+        if (sort != null) {
+            if (sort.equals("EVENT_DATE")) {
+                result.sort(Comparator.comparing(Event::getEventDate));
+            } else if (sort.equals("VIEWS")) {
+                result.sort(Comparator.comparing(Event::getViews).reversed());
+            }
         }
 
         return result.stream().map(EventMapper::toShortDto).collect(Collectors.toList());
@@ -238,28 +247,31 @@ public class EventServiceImpl implements EventService {
     private void setViewsAndConfirmedRequests(List<Event> events) {
         if (events == null || events.isEmpty()) return;
 
+        Map<String, Long> viewsMap = new HashMap<>();
+
+        for (Event event : events) {
+            event.setViews(0L);
+            event.setConfirmedRequests(requestRepository.countByEventIdAndStatus(event.getId(),
+                    RequestStatus.CONFIRMED));
+        }
+
         List<String> uris = events.stream()
                 .map(e -> "/events/" + e.getId())
                 .collect(Collectors.toList());
-
-        Map<String, Long> viewsMap = Map.of();
 
         try {
             List<ViewStatsDto> stats = statsClient.getStats(LocalDateTime.now().minusYears(10),
                     LocalDateTime.now().plusYears(10), uris, true);
 
             if (stats != null && !stats.isEmpty()) {
-                viewsMap = stats.stream()
-                        .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits, (e, r) -> e));
+                stats.forEach(s -> viewsMap.put(s.getUri(), s.getHits()));
+            }
+
+            for (Event event : events) {
+                event.setViews(viewsMap.getOrDefault("/events/" + event.getId(), 0L));
             }
         } catch (Exception e) {
             log.error("Статистика недоступна: {}", e.getMessage());
-        }
-
-        for (Event event : events) {
-            event.setViews(viewsMap.getOrDefault("/events/" + event.getId(), 0L));
-            event.setConfirmedRequests(requestRepository.countByEventIdAndStatus(event.getId(),
-                    RequestStatus.CONFIRMED));
         }
     }
 
