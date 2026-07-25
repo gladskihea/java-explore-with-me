@@ -30,6 +30,7 @@ import ru.practicum.user.model.User;
 import ru.practicum.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -138,13 +139,13 @@ public class EventServiceImpl implements EventService {
         Event event = getEvent(eventId);
 
         if (updateRequest.getEventDate() != null && updateRequest.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
-            throw new ValidationException("Дата начала изменяемого события должна быть не ранее чем за час от даты публикации.");
+            throw new ValidationException("Дата начала события должна быть не ранее чем за час от даты публикации.");
         }
 
         if (updateRequest.getStateAction() != null) {
             if (updateRequest.getStateAction().name().equals("PUBLISH_EVENT")) {
                 if (!event.getState().equals(EventState.PENDING)) {
-                    throw new ConflictException("Событие можно публиковать, только если оно в состоянии ожидания публикации");
+                    throw new ConflictException("Событие можно публиковать, только если оно в ожидании публикации");
                 }
                 event.setState(EventState.PUBLISHED);
                 event.setPublishedOn(LocalDateTime.now());
@@ -183,19 +184,21 @@ public class EventServiceImpl implements EventService {
         saveEndpointHit(request);
         setViewsAndConfirmedRequests(events);
 
+        List<Event> result = new ArrayList<>(events);
+
         if (onlyAvailable != null && onlyAvailable) {
-            events = events.stream()
+            result = result.stream()
                     .filter(e -> e.getParticipantLimit() == 0 || e.getParticipantLimit() > e.getConfirmedRequests())
                     .collect(Collectors.toList());
         }
 
         if (sort != null && sort.equals("EVENT_DATE")) {
-            events.sort(Comparator.comparing(Event::getEventDate));
+            result.sort(Comparator.comparing(Event::getEventDate));
         } else if (sort != null && sort.equals("VIEWS")) {
-            events.sort(Comparator.comparing(Event::getViews).reversed());
+            result.sort(Comparator.comparing(Event::getViews).reversed());
         }
 
-        return events.stream().map(EventMapper::toShortDto).collect(Collectors.toList());
+        return result.stream().map(EventMapper::toShortDto).collect(Collectors.toList());
     }
 
     @Override
@@ -229,11 +232,24 @@ public class EventServiceImpl implements EventService {
                 .map(e -> "/events/" + e.getId())
                 .collect(Collectors.toList());
 
-        List<ViewStatsDto> stats = statsClient.getStats(LocalDateTime.now().minusYears(10),
-                LocalDateTime.now().plusYears(10), uris, true);
+        Map<String, Long> viewsMap = Map.of();
 
-        Map<String, Long> viewsMap = (stats == null || stats.isEmpty()) ? Map.of() : stats.stream()
-                .collect(Collectors.toMap(ViewStatsDto::getUri, ViewStatsDto::getHits, (existing, replacement) -> existing));
+        try {
+            List<ViewStatsDto> stats = statsClient.getStats(LocalDateTime.now().minusYears(10),
+                    LocalDateTime.now().plusYears(10), uris, true);
+
+            if (stats != null && !stats.isEmpty()) {
+                viewsMap = stats.stream()
+                        .filter(s -> s.getUri() != null && s.getHits() != null)
+                        .collect(Collectors.toMap(
+                                ViewStatsDto::getUri,
+                                ViewStatsDto::getHits,
+                                (existing, replacement) -> existing
+                        ));
+            }
+        } catch (Exception e) {
+            log.error("Ошибка при получении статистики: {}", e.getMessage());
+        }
 
         for (Event event : events) {
             event.setViews(viewsMap.getOrDefault("/events/" + event.getId(), 0L));
