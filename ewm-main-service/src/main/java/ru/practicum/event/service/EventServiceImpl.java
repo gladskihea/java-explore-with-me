@@ -52,7 +52,7 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventFullDto addEvent(Long userId, NewEventDto newEventDto) {
         if (newEventDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ConflictException("Событие не может быть раньше, чем через 2 часа");
+            throw new ValidationException("Событие не может быть раньше, чем через 2 часа");
         }
         User user = getUser(userId);
         Category category = getCategory(newEventDto.getCategory());
@@ -99,10 +99,10 @@ public class EventServiceImpl implements EventService {
             throw new NotFoundException("Это не ваше событие");
         }
         if (event.getState().equals(EventState.PUBLISHED)) {
-            throw new ConflictException("Изменить можно только отмененные события или события в ожидании");
+            throw new ValidationException("Изменить можно только отмененные события или события в ожидании");
         }
         if (updateRequest.getEventDate() != null && updateRequest.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ConflictException("Событие не может быть раньше, чем через 2 часа");
+            throw new ValidationException("Событие не может быть раньше, чем через 2 часа");
         }
 
         updateEventFields(event, updateRequest.getAnnotation(), updateRequest.getCategory(),
@@ -142,15 +142,15 @@ public class EventServiceImpl implements EventService {
         Event event = getEvent(eventId);
 
         if (updateRequest.getEventDate() != null && updateRequest.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
-            throw new ConflictException("Событие не может быть раньше, чем через 1 час от публикации");
+            throw new ValidationException("Событие не может быть раньше, чем через 1 час от публикации");
         }
 
         if (updateRequest.getStateAction() != null) {
             if (updateRequest.getStateAction().name().equals("PUBLISH_EVENT") && !event.getState().equals(EventState.PENDING)) {
-                throw new ConflictException("Событие можно публиковать, только если оно в ожидании");
+                throw new ValidationException("Событие можно публиковать, только если оно в ожидании");
             }
             if (updateRequest.getStateAction().name().equals("REJECT_EVENT") && event.getState().equals(EventState.PUBLISHED)) {
-                throw new ConflictException("Событие можно отклонить, только если оно еще не опубликовано");
+                throw new ValidationException("Событие можно отклонить, только если оно еще не опубликовано");
             }
 
             if (updateRequest.getStateAction().name().equals("PUBLISH_EVENT")) {
@@ -182,12 +182,16 @@ public class EventServiceImpl implements EventService {
 
         saveEndpointHit(request);
 
-        Pageable pageable = PageRequest.of(from / size, size);
-        if (rangeStart == null && rangeEnd == null) {
+        if (rangeStart == null) {
             rangeStart = LocalDateTime.now();
         }
+        if (rangeEnd == null) {
+            rangeEnd = LocalDateTime.now().plusYears(100);
+        }
 
+        Pageable pageable = PageRequest.of(from / size, size);
         List<Event> events = eventRepository.findPublishedEvents(text, categories, paid, rangeStart, rangeEnd, pageable);
+
         setViewsAndConfirmedRequests(events);
 
         if (onlyAvailable != null && onlyAvailable) {
@@ -213,7 +217,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new NotFoundException("Событие не найдено или недоступно"));
 
-        saveEndpointHit(request); // Сохраняем просмотр карточки
+        saveEndpointHit(request);
         setViewsAndConfirmedRequests(List.of(event));
         return EventMapper.toFullDto(event);
     }
@@ -252,7 +256,6 @@ public class EventServiceImpl implements EventService {
 
         for (Event event : events) {
             event.setViews(viewsMap.getOrDefault("/events/" + event.getId(), 0L));
-            // Пока нет модуля Requests, ставим 0
             Long confirmedCount = requestRepository.countByEventIdAndStatus(event.getId(), ru.practicum.request.model.RequestStatus.CONFIRMED);
             event.setConfirmedRequests(confirmedCount);
         }
