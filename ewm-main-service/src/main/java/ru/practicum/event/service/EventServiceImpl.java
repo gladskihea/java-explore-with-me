@@ -134,7 +134,10 @@ public class EventServiceImpl implements EventService {
         boolean hasCategories = categories != null && !categories.isEmpty();
         List<Long> validCategories = hasCategories ? categories : List.of(0L);
 
-        List<Event> events = eventRepository.findEventsByAdmin(hasUsers, validUsers, hasStates, validStates, hasCategories, validCategories, rangeStart, rangeEnd, pageable);
+        LocalDateTime start = (rangeStart == null) ? LocalDateTime.now().minusYears(100) : rangeStart;
+        LocalDateTime end = (rangeEnd == null) ? LocalDateTime.now().plusYears(100) : rangeEnd;
+
+        List<Event> events = eventRepository.findEventsByAdmin(hasUsers, validUsers, hasStates, validStates, hasCategories, validCategories, start, end, pageable);
         fillData(events);
         return events.stream().map(EventMapper::toFullDto).collect(Collectors.toList());
     }
@@ -188,8 +191,11 @@ public class EventServiceImpl implements EventService {
         boolean hasCategories = categories != null && !categories.isEmpty();
         List<Long> validCategories = hasCategories ? categories : List.of(0L);
 
+        // Готовим поисковый текст в Java, чтобы избежать багов конкатенации в SQL при null
+        String searchText = (text != null && !text.isBlank()) ? "%" + text.toLowerCase() + "%" : null;
+
         Pageable pageable = createPageable(from, size);
-        List<Event> events = eventRepository.findPublishedEvents(text, hasCategories, validCategories, paid, start, end, pageable);
+        List<Event> events = eventRepository.findPublishedEvents(searchText, hasCategories, validCategories, paid, start, end, pageable);
 
         saveEndpointHit(request);
 

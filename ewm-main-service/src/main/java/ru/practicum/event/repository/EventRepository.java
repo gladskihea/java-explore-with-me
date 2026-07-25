@@ -21,8 +21,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "WHERE (:hasUsers = false OR e.initiator.id IN :users) " +
             "AND (:hasStates = false OR e.state IN :states) " +
             "AND (:hasCategories = false OR e.category.id IN :categories) " +
-            "AND (cast(:rangeStart as timestamp) IS NULL OR e.eventDate >= :rangeStart) " +
-            "AND (cast(:rangeEnd as timestamp) IS NULL OR e.eventDate <= :rangeEnd)")
+            "AND e.eventDate >= :rangeStart " +
+            "AND e.eventDate <= :rangeEnd")
     List<Event> findEventsByAdmin(@Param("hasUsers") Boolean hasUsers,
                                   @Param("users") List<Long> users,
                                   @Param("hasStates") Boolean hasStates,
@@ -35,12 +35,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e " +
             "WHERE e.state = 'PUBLISHED' " +
-            "AND (:text IS NULL OR (LOWER(e.annotation) LIKE LOWER(CONCAT('%',:text,'%')) OR LOWER(e.description) LIKE LOWER(CONCAT('%',:text,'%')))) " +
+            "AND (:searchText IS NULL OR LOWER(e.annotation) LIKE :searchText OR LOWER(e.description) LIKE :searchText) " +
             "AND (:hasCategories = false OR e.category.id IN :categories) " +
             "AND (:paid IS NULL OR e.paid = :paid) " +
-            "AND (e.eventDate >= :rangeStart) " +
-            "AND (e.eventDate <= :rangeEnd)")
-    List<Event> findPublishedEvents(@Param("text") String text,
+            "AND e.eventDate >= :rangeStart " +
+            "AND e.eventDate <= :rangeEnd")
+    List<Event> findPublishedEvents(@Param("searchText") String searchText,
                                     @Param("hasCategories") Boolean hasCategories,
                                     @Param("categories") List<Long> categories,
                                     @Param("paid") Boolean paid,
