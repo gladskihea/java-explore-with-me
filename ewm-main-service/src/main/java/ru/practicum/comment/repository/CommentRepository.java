@@ -8,6 +8,5 @@ import java.util.List;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    // Получить все комментарии к конкретному событию с пагинацией
     List<Comment> findAllByEventId(Long eventId, Pageable pageable);
 }

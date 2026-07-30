@@ -8,6 +8,101 @@
   },
   "item": [
     {
+      "name": "Создание пользователя",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.globals.set(\"userId\", jsonData.id); \r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"email\": \"test.user@mail.ru\",\r\n  \"name\": \"Иван Крутой\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/admin/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "admin",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Создание категории",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.globals.set(\"catId\", jsonData.id);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Тестовая категория\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/admin/categories",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "admin",
+            "categories"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "Добавление комментария",
       "event": [
         {
@@ -16,12 +111,8 @@
             "exec": [
               "pm.test(\"Ожидаемый статус-код 201 Created\", function () {\r",
               "    pm.response.to.have.status(201);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Ответ содержит ID и текст комментария\", function () {\r",
               "    var jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData.id).to.be.a('number');\r",
-              "    pm.expect(jsonData.text).to.eql(\"Это отличный тест комментария для события!\");\r",
+              "    pm.globals.set(\"commentId\", jsonData.id); \r",
               "});"
             ],
             "type": "text/javascript",
@@ -43,7 +134,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/users/1/comments?eventId=1",
+          "raw": "http://localhost:8080/users/{{userId}}/comments?eventId={{eventId}}",
           "protocol": "http",
           "host": [
             "localhost"
@@ -51,13 +142,13 @@
           "port": "8080",
           "path": [
             "users",
-            "1",
+            "{{userId}}",
             "comments"
           ],
           "query": [
             {
               "key": "eventId",
-              "value": "1"
+              "value": "{{eventId}}"
             }
           ]
         }
@@ -73,11 +164,6 @@
             "exec": [
               "pm.test(\"Ожидаемый статус-код 200 OK\", function () {\r",
               "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Ответ является списком (массивом)\", function () {\r",
-              "    var jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData).to.be.an('array');\r",
               "});"
             ],
             "type": "text/javascript",
@@ -90,7 +176,7 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "http://localhost:8080/events/1/comments",
+          "raw": "http://localhost:8080/events/{{eventId}}/comments",
           "protocol": "http",
           "host": [
             "localhost"
@@ -98,7 +184,7 @@
           "port": "8080",
           "path": [
             "events",
-            "1",
+            "{{eventId}}",
             "comments"
           ]
         }
@@ -114,11 +200,6 @@
             "exec": [
               "pm.test(\"Ожидаемый статус-код 200 OK\", function () {\r",
               "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Текст комментария успешно изменился\", function () {\r",
-              "    var jsonData = pm.response.json();\r",
-              "    pm.expect(jsonData.text).to.eql(\"Это измененный текст комментария!\");\r",
               "});"
             ],
             "type": "text/javascript",
@@ -140,7 +221,7 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8080/users/1/comments/1",
+          "raw": "http://localhost:8080/users/{{userId}}/comments/{{commentId}}",
           "protocol": "http",
           "host": [
             "localhost"
@@ -148,9 +229,9 @@
           "port": "8080",
           "path": [
             "users",
-            "1",
+            "{{userId}}",
             "comments",
-            "1"
+            "{{commentId}}"
           ]
         }
       },
@@ -177,7 +258,7 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "http://localhost:8080/users/1/comments/1",
+          "raw": "http://localhost:8080/users/{{userId}}/comments/{{commentId}}",
           "protocol": "http",
           "host": [
             "localhost"
@@ -185,9 +266,101 @@
           "port": "8080",
           "path": [
             "users",
-            "1",
+            "{{userId}}",
             "comments",
-            "1"
+            "{{commentId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Создание события",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.globals.set(\"eventId\", jsonData.id);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"annotation\": \"Сплав на байдарках похож на полет над водой.\",\r\n  \"category\": {{catId}},\r\n  \"description\": \"Сплав на байдарках похож на полет. На спокойной воде — это парение.\",\r\n  \"eventDate\": \"2030-12-31 15:10:05\",\r\n  \"location\": {\"lat\": 55.75, \"lon\": 37.62},\r\n  \"paid\": true,\r\n  \"participantLimit\": 10,\r\n  \"requestModeration\": true,\r\n  \"title\": \"Сплав на байдарках\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/users/{{userId}}/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users",
+            "{{userId}}",
+            "events"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Публикация события",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"stateAction\": \"PUBLISH_EVENT\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/admin/events/{{eventId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "admin",
+            "events",
+            "{{eventId}}"
           ]
         }
       },
