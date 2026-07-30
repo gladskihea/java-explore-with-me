@@ -100,6 +100,98 @@
       "response": []
     },
     {
+      "name": "Создание события",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "    var jsonData = pm.response.json();\r",
+              "    pm.globals.set(\"eventId\", jsonData.id);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"annotation\": \"Сплав на байдарках похож на полет над водой.\",\r\n  \"category\": {{catId}},\r\n  \"description\": \"Сплав на байдарках похож на полет. На спокойной воде — это парение.\",\r\n  \"eventDate\": \"2030-12-31 15:10:05\",\r\n  \"location\": {\"lat\": 55.75, \"lon\": 37.62},\r\n  \"paid\": true,\r\n  \"participantLimit\": 10,\r\n  \"requestModeration\": true,\r\n  \"title\": \"Сплав на байдарках\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/users/{{userId}}/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users",
+            "{{userId}}",
+            "events"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Публикация события",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Статус 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"stateAction\": \"PUBLISH_EVENT\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/admin/events/{{eventId}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "admin",
+            "events",
+            "{{eventId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "Добавление комментария",
       "event": [
         {
@@ -266,98 +358,6 @@
             "{{userId}}",
             "comments",
             "{{commentId}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Создание события",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Статус 201\", function () {\r",
-              "    pm.response.to.have.status(201);\r",
-              "    var jsonData = pm.response.json();\r",
-              "    pm.globals.set(\"eventId\", jsonData.id);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"annotation\": \"Сплав на байдарках похож на полет над водой.\",\r\n  \"category\": {{catId}},\r\n  \"description\": \"Сплав на байдарках похож на полет. На спокойной воде — это парение.\",\r\n  \"eventDate\": \"2030-12-31 15:10:05\",\r\n  \"location\": {\"lat\": 55.75, \"lon\": 37.62},\r\n  \"paid\": true,\r\n  \"participantLimit\": 10,\r\n  \"requestModeration\": true,\r\n  \"title\": \"Сплав на байдарках\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8080/users/{{userId}}/events",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8080",
-          "path": [
-            "users",
-            "{{userId}}",
-            "events"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "Публикация события",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Статус 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"stateAction\": \"PUBLISH_EVENT\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8080/admin/events/{{eventId}}",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8080",
-          "path": [
-            "admin",
-            "events",
-            "{{eventId}}"
           ]
         }
       },
